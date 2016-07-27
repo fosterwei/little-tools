@@ -35,3 +35,29 @@ def main():
   print 'all done\n'
 if __name__=='__main__'
   main()
+#实例例证
+#coding:utf-8
+from time import sleep,ctime
+import threading
+
+def super_player(file,time):
+  for i in range(2):
+    print 'Start play:%s! %s' %(file,ctime())
+    sleep(time)
+
+list={'love story.mp3':3,'avatar.mp4':5,'you and me.mp3':4}
+
+thread=[]
+files=range(len(lsit))
+
+for file,time in list.items():  #items后数据变成[('love story.mp3',3)]转成列表
+  t=threading.Thread(target=super_player,args=(file,time))
+  threads.append(t)
+  
+if __name__=='__main__':
+  for i in files:
+    threads[i].start()
+  for i in files:
+    threads[i].join()
+  print 'end:%s' %ctime()
+  
