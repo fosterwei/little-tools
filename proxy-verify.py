@@ -18,7 +18,7 @@ def search(req,line):
     data='no'
   return data
   
-url='...........此处为代理ip获取链接（付费）'
+url='...........此处为代理ip获取链接（付费）(http://multiproxy.org/txt_all/proxy.txt)'
 
 request=urllib2.Request(url)
 opener=urllib2.build_open(request)
