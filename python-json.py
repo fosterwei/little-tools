@@ -10,6 +10,7 @@ class Person(object):
     print p
 #如果直接通过json.dumps方法对Person的实例进行处理的话，会报错，因为json无法支持这样的自动转化。通过上面所提到的json和python的类型转化对照表，可以发现，object类型是和dict相关联的，所以我们需要把我们自定义的类型转化为dict，然后再进行处理。这里，有两种方法可以使用。
 #新文件
+#方法1：继承JSONEncoder和JSONDecoder类，覆写相关方法
 import Person
 import json
 
@@ -45,3 +46,47 @@ o = MyDecoder().decode(d)
 
 print d
 print type(o),o
+
+#方法2：自己写转化函数
+import Person
+import json
+
+p=Person.Person('Peter',22)
+
+def object2dict(obj):
+  #convert object to a dict
+  d={}
+  d['__class__']=obj.__class__.__name__
+  d['__module__']=obj.__module__
+  d.update(obj.__dict__)
+  return d
+  
+def dict2object(d):
+  #convert dict to object
+  if '__class__' in d:
+    class_name=d.pop('__class__')
+    module_name=d.pop('__module__')
+    module=__import__(module_name)
+    class_=getattr(module,class_name)
+    args=dict((key.encode('ascii'),value) for key,value in d.items()) #get args
+    inst=class_(**args) #create new instance
+    
+  else:
+    inst=d
+  return inst
+  
+d=object2dict(p)
+print d
+#{'age':22,'__module__':'Person','__class__':'Person','name':'Peter'}
+
+o=dict2object(d)
+print type(o),o
+#<class 'Person.Person'> Person Object name : Peter, age:22
+
+dump=json.dumps(p,default=object2dict)
+print dump
+#{"age":22,"__module__":"Person","__class__":"Person","name":"Peter"}
+
+load=json.loads(dump,object_hook=dict2object)
+print load
+#Person Object name : Peter,age:22
