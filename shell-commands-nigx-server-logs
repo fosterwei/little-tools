@@ -1,0 +1,9 @@
+#视频页抓取量占所有抓取的百分比
+awk '{print $7}' tail.log|awk '{if($0~"\/show\/[a-zA-Z]+"){n=n+1}}END{print n/NR*100"%"}'
+
+#专区页占比
+awk '{print $7}' tail.log|awk '{if($0=="/community/minecraft"){n=n+1}}END{print n/NR*100"$"}'
+
+#单独筛选出视频页面
+awk '($7~/\/show\/[a-zA-Z]+/){print $7} tail.log|head -100'
+awk '{print $7}' tail.log|grep -E '\/show\/'|sort |uniq -c|sort -rn|head -100
