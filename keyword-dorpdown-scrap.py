@@ -40,7 +40,7 @@ class CrawlThread(threading.Thread)
     try:
       #req=requests.get(url,proxies=proxy)
       req=requests.get(url)
-      content=json.loads(req.text.replace('window.google.ac.h(', '').replace(')',''))
+      content=json.loads(req.text.replace('window.google.ac.h(', '').replace(')','')) #Converts Unicode Entities to Unicode Text
       for value in content[1]:
         results.append(value[0].replace('<br>', '').replace('</b>', ''))
       print 'success',url
