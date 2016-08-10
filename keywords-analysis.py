@@ -14,8 +14,8 @@ for line in open('keyword'):
   
   word=line[0]
   try:
-    searchs=int(line(1))
-    contend=int(line(2))
+    searchs=int(line[1])
+    contend=int(line[2])
   except(ValueError,TypeError) as e:
     continue
   group=line[3]
@@ -24,4 +24,16 @@ for line in open('keyword'):
   
   if cixing=='招聘'：#如果词就是这个的话
     continue
+  
+  if word_class.has_key(cixing):
+    word_class[cixing]['cishu']+=1
+    word_class[cixing]['searvhes']+=searches
+    word_class[cixing]['contend']+=contend
+    word_class[cixing]['contend_average']=float(word_class[cixing]['contend'])/float(word_class[cixing]['cishu'])
+  else:
+    word_class[cixing]={'cishu':1,'searches':searches,'contend':contend,'contend_average':0}
+    
+```按值进行排序```
+print '+'+'-'*30+'+'+'-'*12+'+'+'-'*12+'+'+'-'*12+'+'+'-'*20+'+'
+
     
