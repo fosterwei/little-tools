@@ -35,5 +35,14 @@ for line in open('keyword'):
     
 ```按值进行排序```
 print '+'+'-'*30+'+'+'-'*12+'+'+'-'*12+'+'+'-'*12+'+'+'-'*20+'+'
+print '|'+' '*2+'keyword'+' '*(28-len('keyword'))+'|'\
+  +' '*2+'cishu'+' '*(10-len(cishu))+'|'\
+  +' '*2+searches+' '*(10-len(cishu))+'|'\
+  +' '*2+contend+' '*(10-len(contend))+'|'\
+  +' '*2+contend_average+' '*(18-len(contend_average))+'|'
+  
+print '+'+'-'*30+'+'+'-'*12+'+'+'-'*12+'+'+'-'*12+'+'+'-'*20+'+'
+
+
 
     
