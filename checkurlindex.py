@@ -1,4 +1,6 @@
 #coding:utf-8
+# Google says don't use this script: https://twitter.com/methode/status/783733724655517696
+# This script is a violation of Google Terms of Service. Don't use it.
 
 import requests,csv,os,time
 from bs4 import BeautifulSoup
