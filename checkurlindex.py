@@ -1,6 +1,9 @@
 #coding:utf-8
 # Google says don't use this script: https://twitter.com/methode/status/783733724655517696
 # This script is a violation of Google Terms of Service. Don't use it.
+#To use the Python script above, make sure you have Python 3 installed. You will also have to install the BeautifulSoup library. To do this, open up a terminal or command prompt and execute:
+#pip install beautifulsoup4
+#guides:http://searchengineland.com/check-urls-indexed-google-using-python-259773
 
 import requests,csv,os,time
 from bs4 import BeautifulSoup
