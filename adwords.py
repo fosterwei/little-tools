@@ -1,6 +1,9 @@
 #coding:utf-8
 #!/usr/bin/python
 #
+#python googletag.py <inpath> <outpath> <lang>    inpath: 输入路径  outpath: 输出路径
+#lang: en 或者 hi
+#python googletag.py -h 可以查看命令选项帮助
 # Copyright 2016 Google Inc. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
