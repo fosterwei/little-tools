@@ -1,6 +1,6 @@
 #coding:utf-8
 import urllib,re,threading,random,pycurl,StringIO,time,csv
-form bs4 import BeautifulSoup as bs
+from bs4 import BeautifulSoup as bs
 
 csvfile=open('serp_html.csv','wb')# 新建一个存放百度数据的csv文件
 
