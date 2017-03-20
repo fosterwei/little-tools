@@ -7,3 +7,50 @@ awk '{print $7}' tail.log|awk '{if($0=="/community/minecraft"){n=n+1}}END{print 
 #单独筛选出视频页面
 awk '($7~/\/show\/[a-zA-Z]+/){print $7} tail.log|head -100'
 awk '{print $7}' tail.log|grep -E '\/show\/'|sort |uniq -c|sort -rn|head -100
+
+wc -l py2.log     计算日志文件的行数
+split  -l    30000   py2.log   newlog按照行数分割文件
+grep   查找特定内容
+awk    打印特定内容
+sed     编辑特定内容
+1统计不重复抓取数量
+cat  goplay.log | awk '{print $4}' | sort |uniq |wc -l
+2统计所有状态码数量
+awk '{print $10}'  goplay.log | sort | uniq -c
+3统计某个目录的抓取次数
+grep  "/mincraft"  goplay.log | awk '{print $4}' |sort|wc  -l
+4统计各个目录出现404相应码的次数
+cat   goplay.log  | awk  'BEGIN{FS="/| "}  {if($(NF-2)==404){print  $5,$(NF -2)}}'  |sort |uniq -c | sort -r
+4统计404页面的抓取数量
+awk  '{if（$10=="404"）{print $0}}' goplay.log|sort|uniq|wc -l
+5统计每个ip下对应URL的抓取次数
+awk  '{print $6,$4}' goplay.log |sort|uniq -c
+6提取蜘蛛访问数量前10的网站目录及访问次数，并按降序排列
+awk  '{print $4}'  goplay.log |grep -p "[^/(a-zA-Z)|^/(a-zA-Z)/]" |awk -F"/" '{print $2}' |sort|uniq -c|sort -r|head -10
+7提取某个目录蜘蛛访问次数
+cat  goplay.log |grep "/shop"|wc -l
+cat goplay.log |awk '{print $4}' |grep "/shop/"|wc -l
+cat goplay.log |awk '{print $4}  |awk -F "/"'{print $2}'|grep "shop"|wc -l
+8统计首页抓取的次数占总体抓取次数比率
+cat  goplay.log |awk '{print $4}'|awk '{if ($0=="/"){n=n+1}}END{print n/NR*100"%"}'
+9统计404相应码占总响应码比率
+cat  goplay.log |awk '{print $10}' |awk '{if($0=="404"){n=n+1}}END{print n/NR*100"%"}'
+计算蜘蛛抓取总时间与总抓取次数
+cat  goplay.log|awk '{FS=" "}{print $2}'|awk -F":" '{print $2}'| sort |uniq -c|awk 'BEGIN{print "小时"，"次数"}{print $2,$1}'|awk {for(n=0;n<5;n++){b=$2}} {a+=b} {print $0}END{print "总数" b,a}'
+10计算蜘蛛爬取总字节数
+cat  goplay.log |awk '{print $11}'| awk 'BEGIN{total=0}{total+=$1}END{print total}'
+11计算平均每次每个网页抓取字节数（小数点后面大于5进1）
+
+nginx
+########筛选切割出google爬取日志数据
+cat  google.log|grep 'googlespider/2.0'>>goplay.log
+#########统计各个状态码数量
+cat goplay.log|grep 'googlespider'|awk '{print $9}'|sort|uniq -c
+#########统计不重复抓取数量
+awk '{print $7}' baidu.log|sort|uniq|wc -l
+##########统计某个目录抓取次数
+cat goplay.log|grep -c '/zt/'
+##########统计各个目录出现404响应码的次数
+cat goplay.log|grep '404'|awk '{print $7}'|sort|uniq -c
+#####统计404页面的抓取数量
+cat goplay.log|grep -c '404'
