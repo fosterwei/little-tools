@@ -1,0 +1,21 @@
+import pandas as pd
+
+# Step 1: Read the Excel file
+file_path = '/mnt/data/power query data keywords.xlsx'
+df = pd.read_excel(file_path)
+
+# Step 2: Filter by countries
+countries_of_interest = ['usa', 'can', 'uk', 'german']
+filtered_df = df[df['Country'].isin(countries_of_interest)]
+
+# Step 3: Group by 'name of toy' and 'Country', then get top 10 by impressions for each group
+top10_each_toy_country = filtered_df.groupby(['name of toy', 'Country']).apply(lambda x: x.nlargest(10, 'Impressions')).reset_index(drop=True)
+
+# Step 4: Save the filtered top 10 queries for each name of toy and country into separate sheets
+output_file_path = '/mnt/data/top_10_queries_per_country.xlsx'
+with pd.ExcelWriter(output_file_path) as writer:
+    for country in countries_of_interest:
+        # Adjust the country name for the sheet name if necessary
+        sheet_name = country.upper() if country != 'uk' and country != 'german' else country
+        country_data = top10_each_toy_country[top10_each_toy_country['Country'] == country]
+        country_data.to_excel(writer, sheet_name=sheet_name, index=False)
