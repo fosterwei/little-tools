@@ -1,5 +1,5 @@
 #coding:utf-8
-# Google says don't use this script: https://twitter.com/methode/status/783733724655517696
+# Google says don't use this script: https://twitter.com/methode/status/783733724655517696   double check
 # This script is a violation of Google Terms of Service. Don't use it.
 #To use the Python script above, make sure you have Python 3 installed. You will also have to install the BeautifulSoup library. To do this, open up a terminal or command prompt and execute:
 #pip install beautifulsoup4
