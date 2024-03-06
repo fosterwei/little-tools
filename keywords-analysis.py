@@ -20,7 +20,7 @@ for line in open('keyword'):
     continue
   group=line[3]
   
-  cixing=search('(minecraft.*)',word)#提取含'招聘'的词，匹配
+  cixing=search('(minecraft.*)',word)#提取含'招聘'词根的词，匹配
   
   if cixing=='minecraft'：#如果词就是这个的话
     continue
