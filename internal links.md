@@ -55,6 +55,361 @@ The line _logging.basicConfig(level=logging.INFO)_ sets up the basic configurati
     *   INFO level logs are used to show general information about the execution flow, such as the start or completion of tasks, status updates, and other important events.
 
 So, this line configures the logger to show informational messages, making it easier to track and monitor the script's behavior as it runs.
+`while True: try: SIMILARITY_THRESHOLD = float(input("Enter the similarity threshold as a percentage (e.g., 10 for 10%): ")) if 0 <= SIMILARITY_THRESHOLD <= 100: SIMILARITY_THRESHOLD /= 100 # Convert to decimal break else: print("Please enter a value between 0 and 100.") except ValueError: print("Invalid input. Please enter a valid percentage.")`
+
+This code starts with an infinite `while` loop, which keeps running until a valid input is provided. Inside the loop, the code takes the user’s input for the similarity threshold as a percentage and converts it to a float. The input is validated to ensure it is between 0 and 100. If valid, it converts the percentage to a decimal (e.g., `10%` becomes `0.1`). If the input is not valid (either non-numeric or out of range), it prompts the user again. The code uses `try` and `except` to handle any `ValueError` that might occur when the user enters non-numeric input.
+
+**Short Summary**: The code ensures that the user provides a valid percentage input, converts it to a decimal, and uses it as a threshold for similarity calculations.
+
+### **Step 5: Fetch Webpage Content**
+
+This function fetches the content of each URL using asynchronous requests. If an error occurs, it retries with a delay between each attempt.
+
+    async def fetch_url(session, url, retries=3, delay=5):
+        headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Safari/537.36"
+        }
+        for attempt in range(retries):
+            try:
+                async with session.get(url, headers=headers) as response:
+                    return await response.text()
+            except Exception as e:
+                if attempt < retries - 1:
+                    logging.warning(f"Issue fetching {url}. Retrying in {delay} seconds...")
+                    await asyncio.sleep(delay)
+                    continue
+                else:
+                    logging.error(f"Error fetching content from {url}: {e}")
+                    return None
+    
+
+This function uses the aiohttp library to send asynchronous HTTP GET requests to fetch content from URLs. The headers dictionary sets a custom user-agent to make the request appear like it is coming from a web browser. The function tries to fetch the content up to 3 times (retries=3). If an error occurs (e.g., the server is temporarily unavailable), the function waits for delay seconds before retrying. If it fails after all retries, it logs the error and returns None.
+
+**Short Summary**: The function sends asynchronous requests to fetch webpage content, with retries and delays for error handling.
+
+### **Step 6: Fetch Content for All URLs**
+
+This function reads URLs and collects their HTML content using the fetch\_url function asynchronously.
+
+    async def fetch_url(session, url, retries=3, delay=5):
+        headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Safari/537.36"
+        }
+        for attempt in range(retries):
+            try:
+                async with session.get(url, headers=headers) as response:
+                    return await response.text()
+            except Exception as e:
+                if attempt < retries - 1:
+                    logging.warning(f"Issue fetching {url}. Retrying in {delay} seconds...")
+                    await asyncio.sleep(delay)
+                    continue
+                else:
+                    logging.error(f"Error fetching content from {url}: {e}")
+                    return None
+    
+
+The fetch\_content function sets up an asynchronous session using aiohttp.ClientSession(), allowing multiple URLs to be fetched concurrently. It creates a list of tasks, where each task is an asynchronous call to fetch\_url for a URL. The function then uses asyncio.gather to execute all tasks in parallel. The results are stored in fetched\_contents. The function maps each URL to its fetched content in a dictionary, only storing successful responses.
+
+**Short Summary**: This function fetches HTML content for multiple URLs asynchronously, storing results in a dictionary.
+
+### **Step 7: Extract Text Content**
+
+This function removes unnecessary parts of the HTML (like scripts) and extracts the meaningful text.
+
+    def extract_content(html):
+        soup = BeautifulSoup(html, 'html.parser')
+        for tag in soup(['script', 'style']):
+            tag.decompose()
+        return ' '.join(soup.stripped_strings)
+    
+
+The extract\_content function uses BeautifulSoup to parse the HTML and remove unwanted elements like <script> and <style> tags, which are not useful for content analysis. It decomposes these tags, effectively removing them from the HTML. It then gathers all the remaining text parts (ignoring spaces and formatting) and joins them into a single string.
+
+**Short Summary**: The function cleans the HTML by removing unwanted tags and extracts the meaningful text content.
+
+### **Step 8: Compute Similarity Between Pages**
+
+This function calculates the similarity between pages using TF-IDF and cosine similarity.
+
+    def compute_similarity(contents):
+        processed_contents = [extract_content(html) for html in contents.values()]
+        vectorizer = TfidfVectorizer(stop_words='english')
+        tfidf_matrix = vectorizer.fit_transform(processed_contents)
+        return cosine_similarity(tfidf_matrix)
+    
+
+The compute\_similarity function processes the cleaned content using the extract\_content function for each webpage. It uses the TfidfVectorizer from scikit-learn to convert the text into numerical vectors based on the importance of words (TF-IDF). The cosine\_similarity function then calculates the similarity scores between all these vectors, producing a matrix that indicates how similar each webpage is to every other webpage.
+
+**Short Summary**: This function converts webpage content into numerical vectors using TF-IDF and computes the similarity between them using cosine similarity.
+
+### **Step 9: Suggest Interlinks Based on Similarity**
+
+This function uses the similarity scores to suggest interlinks for each URL based on the threshold.
+
+    def suggest_interlinks(urls, num_suggestions=1):
+        loop = asyncio.get_event_loop()
+        contents = loop.run_until_complete(fetch_content(urls))
+        similarities = compute_similarity(contents)
+        suggestions = {}
+        no_suggestions = []
+        for idx, url in enumerate(contents.keys()):
+            sorted_indices = similarities[idx].argsort()[::-1]
+            relevant_indices = [i for i in sorted_indices if similarities[idx][i] > SIMILARITY_THRESHOLD]
+            suggested_urls = [list(contents.keys())[i] for i in relevant_indices[1:num_suggestions+1]]
+            if not suggested_urls:
+                no_suggestions.append(url)
+            else:
+                suggestions[url] = suggested_urls
+        return suggestions, no_suggestions
+    
+
+The function gets the event loop and uses it to run fetch\_content for all URLs, gathering their content. It calculates similarities between webpages using compute\_similarity. For each URL, it sorts other URLs based on their similarity scores. It then filters URLs that meet the similarity threshold and stores up to the specified number (num\_suggestions). If no URLs meet the threshold for a URL, it is added to no\_suggestions.
+
+**Short Summary**: The function suggests similar URLs for each webpage based on similarity scores and stores URLs with no matches separately.
+
+### **Step 10: Save URLs Without Suggestions**
+
+This function saves URLs that do not have any matching suggestions to a file.
+
+    def save_no_suggestions_to_file(urls, filename="no_suggestions.txt"):
+        with open(filename, 'w', encoding='utf-8') as file:
+            for url in urls:
+                file.write(url + '\n')
+    
+
+The function opens a text file with the given filename and writes each URL from the no\_suggestions list into the file, ensuring each is on a new line. This helps in tracking which URLs did not receive any interlink suggestions.
+
+**Short Summary**: This function writes URLs without matching suggestions to a text file for review.
+
+### **Step 11: Save Interlink Suggestions to CSV**
+
+This function saves the suggested interlinks into a CSV file for easy access and review.
+
+    def save_to_csv(suggestions, output_file, num_suggestions):
+        headers = ["URL"] + [f"Suggested Link {i+1}" for i in range(num_suggestions)]
+        with open(output_file, 'w', newline='', encoding='utf-8') as csvfile:
+            writer = csv.writer(csvfile)
+            writer.writerow(headers)
+            for url, links in suggestions.items():
+                row = [url] + links
+                writer.writerow(row)
+    
+
+The function opens a CSV file and writes headers based on the number of suggested links per URL. For each URL in the suggestions dictionary, it creates a row with the URL and its suggested links. This makes it easy to review and use the interlink suggestions.
+
+**Short Summary**: The function saves the suggested interlinks to a CSV file, making it easy to access and review suggestions.
+
+### Step 9: Load URLs from Text File
+
+The script reads all URLs from a text file (`urls.txt`) and stores them in a list for further analysis.
+
+    with open('urls.txt', 'r') as file:
+        urls = [line.strip() for line in file]
+    
+
+This code opens the file named `urls.txt` and reads each line, stripping any extra whitespace or newline characters. It then stores each cleaned URL in a list called `urls`. This list will be used later in the script to fetch webpage content and calculate similarities.
+
+**Short Summary**: The code reads URLs from a text file and stores them in a list, removing extra spaces or newline characters.
+
+### Step 10: Get User Input for Number of Suggestions
+
+The script asks the user how many interlink suggestions they want for each URL. It ensures the input is valid and within a specific range (1 to 5).
+
+    while True:
+        try:
+            num_suggestions = int(input("Enter the number of suggested links you'd like for each URL (max 5): "))
+            if 1 <= num_suggestions <= 5:
+                break
+            else:
+                print("Please enter a number between 1 and 5.")
+        except ValueError:
+            print("Invalid input. Please enter a number between 1 and 5.")
+    
+
+This code block uses a `while` loop to prompt the user for the number of interlink suggestions they would like for each URL. It ensures that the input is an integer within the range of 1 to 5. If the input is not valid, it prompts the user again until a valid number is provided. The code also handles non-numeric input using a `try-except` block to catch any `ValueError`.
+
+**Short Summary**: This code prompts the user for the number of interlink suggestions per URL and validates that the input is an integer between 1 and 5.
+
+### Step 11: Generate and Save Interlink Suggestions
+
+The script generates interlink suggestions based on the user-defined number and saves them to a CSV file. It also saves URLs with no suggestions to a separate text file.
+
+    suggestions, no_suggestions = suggest_interlinks(urls, num_suggestions)
+    save_to_csv(suggestions, 'interlink_suggestions_luxebites.csv', num_suggestions)
+    if no_suggestions:
+        save_no_suggestions_to_file(no_suggestions, 'no_suggestions_luxebites.txt')
+    
+
+This part of the code calls the `suggest_interlinks` function, passing the list of URLs and the number of suggestions specified by the user. It stores the generated suggestions and URLs without suggestions in `suggestions` and `no_suggestions`, respectively. The script then calls `save_to_csv` to write the suggestions into a CSV file (`interlink_suggestions_luxebites.csv`) for easy access. If any URLs did not receive suggestions, the script saves these URLs into a separate text file (`no_suggestions_luxebites.txt`) for further review.
+
+**Short Summary**: The script generates interlink suggestions and saves them in a CSV file. It also logs URLs with no suggestions into a separate text file.
+
+Complete Code with All Steps
+----------------------------
+
+Here’s the complete code that automates the process of finding interlink suggestions based on webpage content similarity. The code is explained in each step above for clarity.
+
+    import chardet
+    import requests
+    import asyncio
+    import aiohttp
+    import logging
+    from sklearn.feature_extraction.text import TfidfVectorizer
+    from sklearn.metrics.pairwise import cosine_similarity
+    import csv
+    from bs4 import BeautifulSoup
+    logging.basicConfig(level=logging.INFO)
+    while True:
+        try:
+            SIMILARITY_THRESHOLD = float(input("Enter the similarity threshold as a percentage (e.g., 10 for 10%): "))
+            if 0 <= SIMILARITY_THRESHOLD <= 100:
+                SIMILARITY_THRESHOLD /= 100  # Convert to decimal
+                break
+            else:
+                print("Please enter a value between 0 and 100.")
+        except ValueError:
+            print("Invalid input. Please enter a valid percentage.")
+    async def fetch_url(session, url, retries=3, delay=5):
+        headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Safari/537.36"
+        }
+        for attempt in range(retries):
+            try:
+                async with session.get(url, headers=headers) as response:
+                    return await response.text()
+            except Exception as e:
+                if attempt < retries - 1:  # i.e. not the last attempt
+                    logging.warning(f"Issue fetching {url}. Retrying in {delay} seconds...")
+                    await asyncio.sleep(delay)
+                    continue
+                else:
+                    logging.error(f"Error fetching content from {url}: {e}")
+                    return None
+    # Step 1: Fetch content from provided URLs
+    async def fetch_content(urls):
+        contents = {}
+        async with aiohttp.ClientSession() as session:
+            tasks = [fetch_url(session, url) for url in urls]
+            fetched_contents = await asyncio.gather(*tasks)
+        for url, content in zip(urls, fetched_contents):
+            if content:
+                contents[url] = content
+        return contents
+    # Extract meaningful content from raw HTML using BeautifulSoup
+    def extract_content(html):
+        soup = BeautifulSoup(html, 'html.parser')
+        for tag in soup(['script', 'style']):
+            tag.decompose()
+        return ' '.join(soup.stripped_strings)
+    # Step 2: Compute TF-IDF vectors and cosine similarity
+    def compute_similarity(contents):
+        processed_contents = [extract_content(html) for html in contents.values()]
+        vectorizer = TfidfVectorizer(stop_words='english')
+        tfidf_matrix = vectorizer.fit_transform(processed_contents)
+        return cosine_similarity(tfidf_matrix)
+    # Step 3: Suggest interlinks based on similarity
+    def suggest_interlinks(urls, num_suggestions=1):
+        loop = asyncio.get_event_loop()
+        contents = loop.run_until_complete(fetch_content(urls))
+        similarities = compute_similarity(contents)
+        suggestions = {}
+        no_suggestions = []   # List to keep URLs without suggestions
+        for idx, url in enumerate(contents.keys()):
+            sorted_indices = similarities[idx].argsort()[::-1]
+            relevant_indices = [i for i in sorted_indices if similarities[idx][i] > SIMILARITY_THRESHOLD]
+            suggested_urls = [list(contents.keys())[i] for i in relevant_indices[1:num_suggestions+1]]
+            # Check if the URL has any suggested links, if not, add to no_suggestions list
+            if not suggested_urls:
+                no_suggestions.append(url)
+            else:
+                suggestions[url] = suggested_urls
+        return suggestions, no_suggestions
+    def save_no_suggestions_to_file(urls, filename="no_suggestions.txt"):
+        """Save URLs without suggestions to a separate file."""
+        with open(filename, 'w', encoding='utf-8') as file:
+            for url in urls:
+                file.write(url + '\n')
+    # Save suggestions to CSV
+    def save_to_csv(suggestions, output_file, num_suggestions):
+        headers = ["URL"] + [f"Suggested Link {i+1}" for i in range(num_suggestions)]
+        with open(output_file, 'w', newline='', encoding='utf-8') as csvfile:
+            writer = csv.writer(csvfile)
+            writer.writerow(headers)
+            for url, links in suggestions.items():
+                row = [url] + links
+                writer.writerow(row)
+    # Load URLs from text file
+    with open('urls.txt', 'r') as file:
+        urls = [line.strip() for line in file]
+    while True:
+        try:
+            num_suggestions = int(input("Enter the number of suggested links you'd like for each URL (max 5): "))
+            if 1 <= num_suggestions <= 5:
+                break
+            else:
+                print("Please enter a number between 1 and 5.")
+        except ValueError:
+            print("Invalid input. Please enter a number between 1 and 5.")
+    suggestions, no_suggestions = suggest_interlinks(urls, num_suggestions)
+    save_to_csv(suggestions, 'interlink_suggestions_luxebites.csv', num_suggestions)
+    if no_suggestions:
+        save_no_suggestions_to_file(no_suggestions, 'no_suggestions_luxebites.txt')
+    
+
+Demo Output
+-----------
+
+When the script runs, the process is as follows:
+
+### User Inputs:
+
+*   The user enters a similarity threshold (e.g., 10 for 10%).
+*   The user specifies how many suggested links they want per URL (up to 5).
+
+### Execution:
+
+*   The script reads URLs from `urls.txt`.
+*   It fetches and processes the HTML content for each URL asynchronously.
+*   It calculates the similarity between pages using TF-IDF and cosine similarity.
+*   The script then generates interlink suggestions based on the threshold and the number of suggestions specified.
+
+### Outputs:
+
+*   **CSV File (**`**interlink_suggestions_luxebites.csv**`**)**:
+    *   Shows each URL with its suggested interlinks based on content similarity.
+*   **Text File (**`**no_suggestions_luxebites.txt**`**)**:
+    *   Lists URLs that didn’t have suitable matches based on the set threshold.
+
+### Example of CSV Output (`interlink_suggestions_luxebites.csv`)
+
+URL
+
+Suggested Link 1
+
+Suggested Link 2
+
+example.com/page1
+
+example.com/page3
+
+example.com/page4
+
+example.com/page2
+
+example.com/page1
+
+example.com/page5
+
+Example of Text Output (`no_suggestions_luxebites.txt`)
+
+    example.com/page6
+    example.com/page8
+    
+
+The script successfully automates the interlinking process, making it efficient and effective for SEO purposes.
+
+In this post, we developed a Python script to automate the process of finding and suggesting interlinks between webpages based on content similarity. By using TF-IDF and cosine similarity, the script analyzes the content of each page and identifies potential interlinks, saving the results in a structured CSV file. It also keeps track of URLs that do not receive any suggestions, allowing for further review. This automated solution helps streamline the internal linking process, making it more efficient and effective for SEO, saving time and effort compared to manual methods. With this approach, improving website structure and enhancing SEO performance becomes easier and more precise.
 
 ### **Step 4: Set the Similarity Threshold**
 
