@@ -5,7 +5,7 @@ import json
 YOUR_DOMAIN = "www.example.com"
 YOUR_KEY = "a1b2c3d4e5f67890"
 
-# List of URLs to submit
+# List of URLs to submit up to 1000 urls
 urls_to_submit = [
     "https://www.example.com/url1",
     "https://www.example.com/folder/url2",
